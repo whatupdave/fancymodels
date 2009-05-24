@@ -9,8 +9,8 @@ module FancyModels
 
       attr_reader :name
 
-      def initialize(type, name)
-        @type, @name = type, name
+      def initialize(schema, name)
+        @schema, @name = schema, name
         @constraints = []
       end
 
@@ -31,12 +31,12 @@ module FancyModels
     class Definition
       # supports a dsl
       
-      def initialize(type)
-        @type = type
+      def initialize(schema)
+        @schema = schema
       end
       
       def method_missing(field_name, &definition)
-        @type.add_field(field_name, &definition)
+        @schema.add_field(field_name, &definition)
       end
       
     end
@@ -49,7 +49,7 @@ module FancyModels
       @fields = []
       @format = 'yaml'
       @klass = Class.new Document
-      @klass.type = self
+      @klass.schema = self
     end
     
     def build(hsh = {})
@@ -94,7 +94,7 @@ module FancyModels
   class Document
     
     class << self
-      attr_accessor :type
+      attr_accessor :schema
     end
     
     def id
@@ -118,11 +118,11 @@ module FancyModels
     end
     
     def inspect
-      "#<#{self.class.type.name} document>" # todo: dump yaml if yaml format
+      "#<#{self.class.schema.name} document>" # todo: dump yaml if yaml format
     end
     
     def schema
-      self.class.type
+      self.class.schema
     end
     
     def dump
@@ -143,7 +143,7 @@ module FancyModels
     
     def initialize(db)
       @db = db
-      @types = []
+      @schemas = []
     end
     
     def create_documents_table
@@ -158,16 +158,16 @@ module FancyModels
       @db[:documents]
     end
     
-    def define(type_name, &definition)
-      t = Schema.new(self,type_name)
+    def define(schema_name, &definition)
+      t = Schema.new(self,schema_name)
       t.define(&definition)
-      # todo: define type accessor methods here, then remove method missing
-      @types << t
+      # todo: define schema accessor methods here, then remove method missing
+      @schemas << t
     end
     
     # probably don't need this
     def method_missing(msg, *args)
-      @types.find { |t| msg == t.name } || super
+      @schemas.find { |t| msg == t.name } || super
     end
     
   end
@@ -218,7 +218,7 @@ describe "simple store with one model" do
     r.id.size.should == 12
   end
   
-  example "default type 'format' is yaml" do
+  example "default schema 'format' is yaml" do
     @s.restaurants.format == 'yaml'
   end
   
@@ -228,7 +228,7 @@ describe "simple store with one model" do
     r.uid.should == "/restaurants/tdfjtscvm3v1.yaml"
   end
   
-  example "documents with a type that has a yaml format dump to deterministic yaml" do
+  example "documents with a schema that has a yaml format dump to deterministic yaml" do
     r = @s.restaurants.new
     r.set(
       :name => 'Ambalas',
