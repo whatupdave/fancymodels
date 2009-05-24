@@ -26,53 +26,7 @@ module FancyModels
     
   end
   
-  class Document
-    
-    class << self
-      attr_accessor :type
-    end
-    
-    def id
-      @id ||= FancyModels.rand_id
-    end
-    
-    def uid
-      "/#{schema.name}/#{id}.#{schema.format}"
-    end
-    
-    def get_attr(name)
-      self.send(name)
-    end
-    
-    def set_attr(name,val)
-      self.send("#{name}=", val)
-    end
-    
-    def set(hsh = {})
-      hsh.each { |name, val| self.set_attr(name,val) }
-    end
-    
-    def inspect
-      "#<#{self.class.type.name} document>" # todo: dump yaml if yaml format
-    end
-    
-    def schema
-      self.class.type
-    end
-    
-    def dump
-      schema.dump(self)
-    end
-    
-    def save
-      schema.save(self)
-    end
-    
-  end
-  
   class Schema
-    
-    # kind of like tables, name always plural
     
     class Definition
       # supports a dsl
@@ -133,6 +87,50 @@ module FancyModels
       else
         @store.documents_table.insert(:uid => document.uid, :data => document.dump)
       end
+    end
+    
+  end
+  
+  class Document
+    
+    class << self
+      attr_accessor :type
+    end
+    
+    def id
+      @id ||= FancyModels.rand_id
+    end
+    
+    def uid
+      "/#{schema.name}/#{id}.#{schema.format}"
+    end
+    
+    def get_attr(name)
+      self.send(name)
+    end
+    
+    def set_attr(name,val)
+      self.send("#{name}=", val)
+    end
+    
+    def set(hsh = {})
+      hsh.each { |name, val| self.set_attr(name,val) }
+    end
+    
+    def inspect
+      "#<#{self.class.type.name} document>" # todo: dump yaml if yaml format
+    end
+    
+    def schema
+      self.class.type
+    end
+    
+    def dump
+      schema.dump(self)
+    end
+    
+    def save
+      schema.save(self)
     end
     
   end
