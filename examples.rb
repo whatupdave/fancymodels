@@ -53,7 +53,7 @@ module FancyModels
     end
     
     def inspect
-      "#<#{self.class.type.name} record>" # todo: dump yaml if yaml format
+      "#<#{self.class.type.name} document>" # todo: dump yaml if yaml format
     end
     
     def schema
@@ -100,9 +100,9 @@ module FancyModels
     
     def build(hsh = {})
       # klass.instance_eval
-      record = @klass.new
-      record.set(hsh) unless hsh.empty?
-      record
+      document = @klass.new
+      document.set(hsh) unless hsh.empty?
+      document
     end
     alias_method :new, :build
     
@@ -117,21 +117,21 @@ module FancyModels
       @fields << f
     end
     
-    def dump(record)
+    def dump(document)
       case @format
       when "yaml"
         @fields.map do |f|
-          val = record.get_attr(f.name)
+          val = document.get_attr(f.name)
           f.yaml(val) unless val.blank?
         end.compact.join("\n")
       end
     end
     
-    def save(record)
-      if row = @store.documents_table.first(:uid => record.uid)
-        row.update(:data => record.dump)
+    def save(document)
+      if row = @store.documents_table.first(:uid => document.uid)
+        row.update(:data => document.dump)
       else
-        @store.documents_table.insert(:uid => record.uid, :data => record.dump)
+        @store.documents_table.insert(:uid => document.uid, :data => document.dump)
       end
     end
     
@@ -210,7 +210,7 @@ describe "simple store with one model" do
     @s.db[:documents].count.should == 0
   end
   
-  example "record instances can be created with new" do
+  example "document instances can be created with new" do
     r = @s.restaurants.new
     r.class.superclass.should == FancyModels::Document
   end
@@ -230,7 +230,7 @@ describe "simple store with one model" do
     r.uid.should == "/restaurants/tdfjtscvm3v1.yaml"
   end
   
-  example "records with a type that has a yaml format dump to deterministic yaml" do
+  example "documents with a type that has a yaml format dump to deterministic yaml" do
     r = @s.restaurants.new
     r.set(
       :name => 'Ambalas',
@@ -244,7 +244,7 @@ describe "simple store with one model" do
     })
   end
   
-  example "saving record should write the output of #dump to the record's row" do
+  example "saving document should write the output of #dump to the document's row" do
     r = @s.restaurants.new :name => "Test"
     r.save
     @s.documents_table.first(:uid => r.uid)[:data].should == r.dump
