@@ -26,7 +26,7 @@ module FancyModels
     
   end
   
-  class Record
+  class Document
     
     class << self
       attr_accessor :type
@@ -94,7 +94,7 @@ module FancyModels
       @name = name
       @fields = []
       @format = 'yaml'
-      @klass = Class.new Record
+      @klass = Class.new Document
       @klass.type = self
     end
     
@@ -212,7 +212,7 @@ describe "simple store with one model" do
   
   example "record instances can be created with new" do
     r = @s.restaurants.new
-    r.class.superclass.should == FancyModels::Record
+    r.class.superclass.should == FancyModels::Document
   end
   
   example "by default, ids are random 12 char strings" do
