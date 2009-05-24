@@ -26,6 +26,14 @@ module FancyModels
       def yaml(value)
         "#{@name}: #{value.to_s}"
       end
+      
+      def errors(val)
+        errors = []
+        @constraints.each do |name,constraint|
+          errors << name unless constraint.call(val)
+        end
+        errors unless errors.empty? 
+      end
 
     end
     
@@ -59,7 +67,7 @@ module FancyModels
       document
     end
     alias_method :new, :build
-    
+        
     def define(&blk)
       Definition.new(self).instance_eval(&blk)
     end
@@ -69,6 +77,16 @@ module FancyModels
       f.instance_eval(&definition) if definition
       @klass.send :attr_accessor, name
       @fields << f
+    end
+    
+    def validate(document)
+      doc_errors = []
+      @fields.each do |f|
+        field_errors = f.errors(document.get_attr(f.name))
+        doc_errors << [f.name, field_errors] if field_errors
+      end
+      document.errors = doc_errors
+      doc_errors.empty?
     end
     
     def dump(document)
@@ -96,6 +114,8 @@ module FancyModels
     class << self
       attr_accessor :schema
     end
+    
+    attr_accessor :errors
     
     def id
       @id ||= FancyModels.rand_id
@@ -125,12 +145,17 @@ module FancyModels
       self.class.schema
     end
     
+    def valid?
+      schema.validate(self)
+    end
+    
     def dump
       schema.dump(self)
     end
     
     def save
       schema.save(self)
+      self
     end
     
   end
