@@ -1,5 +1,6 @@
 require 'rubygems'
 require 'sequel'
+require 'active_support/core_ext/object/metaclass'
 
 module FancyModels
   
@@ -158,15 +159,10 @@ module FancyModels
     end
     
     def define(schema_name, &definition)
-      t = Schema.new(self,schema_name)
-      t.define(&definition)
-      # todo: define schema accessor methods here, then remove method missing
-      @schemas << t
-    end
-    
-    # probably don't need this
-    def method_missing(msg, *args)
-      @schemas.find { |t| msg == t.name } || super
+      s = Schema.new(self,schema_name)
+      s.define(&definition)
+      metaclass.send(:define_method, schema_name){s}
+      @schemas << s
     end
     
   end
