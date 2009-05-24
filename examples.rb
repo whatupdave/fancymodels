@@ -37,7 +37,7 @@ module FancyModels
     end
     
     def uid
-      "/#{record_type.name}/#{id}.#{record_type.format}"
+      "/#{schema.name}/#{id}.#{schema.format}"
     end
     
     def get_attr(name)
@@ -56,21 +56,21 @@ module FancyModels
       "#<#{self.class.type.name} record>" # todo: dump yaml if yaml format
     end
     
-    def record_type
+    def schema
       self.class.type
     end
     
     def dump
-      record_type.dump(self)
+      schema.dump(self)
     end
     
     def save
-      record_type.save(self)
+      schema.save(self)
     end
     
   end
   
-  class Type
+  class Schema
     
     # kind of like tables, name always plural
     
@@ -161,7 +161,7 @@ module FancyModels
     end
     
     def define(type_name, &definition)
-      t = Type.new(self,type_name)
+      t = Schema.new(self,type_name)
       t.define(&definition)
       # todo: define type accessor methods here, then remove method missing
       @types << t
