@@ -53,7 +53,6 @@ module FancyModels
     end
     
     def build(hsh = {})
-      # klass.instance_eval
       document = @klass.new
       document.set(hsh) unless hsh.empty?
       document
