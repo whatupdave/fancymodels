@@ -3,30 +3,30 @@ require 'sequel'
 
 module FancyModels
   
-  class Field
-    
-    attr_reader :name
-    
-    def initialize(type, name)
-      @type, @name = type, name
-      @constraints = []
-    end
-    
-    def not_blank
-      add_constraint(:not_blank){ |v| !v.blank? }
-    end
-    
-    def add_constraint(name, &blk)
-      @constraints << [name, blk]
-    end
-    
-    def yaml(value)
-      "#{@name}: #{value.to_s}"
-    end
-    
-  end
-  
   class Schema
+    
+    class Field
+
+      attr_reader :name
+
+      def initialize(type, name)
+        @type, @name = type, name
+        @constraints = []
+      end
+
+      def not_blank
+        add_constraint(:not_blank){ |v| !v.blank? }
+      end
+
+      def add_constraint(name, &blk)
+        @constraints << [name, blk]
+      end
+
+      def yaml(value)
+        "#{@name}: #{value.to_s}"
+      end
+
+    end
     
     class Definition
       # supports a dsl
