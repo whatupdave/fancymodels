@@ -15,8 +15,8 @@ module FancyModels
         @constraints = []
       end
 
-      def not_blank
-        add_constraint(:not_blank){ |v| !v.blank? }
+      def cant_be_blank
+        add_constraint(:cant_be_blank){ |v| !v.blank? }
       end
 
       def add_constraint(name, &blk)

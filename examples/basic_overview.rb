@@ -10,7 +10,7 @@ describe "simple store with one model" do
   before do
     @s = FancyModels.create_store Sequel.sqlite
     @s.define :restaurants do 
-      name { not_blank }
+      name
       slug
       phone
     end

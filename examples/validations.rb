@@ -6,7 +6,7 @@ describe "not blank validation" do
   before do
     @s = FancyModels.create_store Sequel.sqlite
     @s.define :people do 
-      name { not_blank }
+      name { cant_be_blank }
     end
   end
   
