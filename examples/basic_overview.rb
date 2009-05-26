@@ -5,6 +5,8 @@ def clip(str)
   str.gsub( str.match(/\n\s+/)[0], "\n" ).strip
 end
 
+# these test don't really specifiy the public api, they just exercise the code to keep it heathy
+
 describe "simple store with one model" do
   
   before do
