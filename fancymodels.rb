@@ -135,7 +135,7 @@ module FancyModels
     end
     
     def exists?(document)
-      @store.documents_table.first(:uid => document.uid)
+      !!@store.documents_table.first(:uid => document.uid)
     end
     
     def create(document)
