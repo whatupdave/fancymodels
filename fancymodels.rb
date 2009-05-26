@@ -6,6 +6,20 @@ module FancyModels
   
   class Schema
     
+    # Builds a new document and sets the attributes given. Does not save the document
+    def new(hsh = {})
+      document = @klass.new
+      document.set(hsh) unless hsh.empty?
+      document
+    end
+    
+    # Find document with given id
+    def find(id)
+      @klass.new(id) if @index_table.first(:id => id)
+    end
+    
+    # == private implementation
+    
     class Field
 
       attr_reader :name
@@ -60,13 +74,6 @@ module FancyModels
       @klass = Class.new Document
       @klass.schema = self
     end
-    
-    def build(hsh = {})
-      document = @klass.new
-      document.set(hsh) unless hsh.empty?
-      document
-    end
-    alias_method :new, :build
     
     def define(&blk)
       Definition.new(self).instance_eval(&blk)
@@ -123,10 +130,6 @@ module FancyModels
       end
     end
     
-    def find(id)
-      @klass.new(id) if @index_table.first(:id => id)
-    end
-    
     def uid(id)
       "/#{@name}/#{id}.#{@format}"
     end
@@ -161,38 +164,47 @@ module FancyModels
   
   class Document
     
-    metaclass.send :attr_accessor, :schema
-    
-    attr_accessor :errors
-    
     attr_reader :id
     
     def initialize(id=nil)
       @id = id || FancyModels.rand_id
     end
     
+    # Set a bunch of attributes. 
+    # E.g. 
+    #     doc.set :name => "Myles", :city => "Sydney"
+    # is equvalent to:
+    #     doc.name = "Myles" ; doc.city = "Sydney"
     def set(hsh = {})
       hsh.each { |name, val| self.set_attr(name,val) }
     end
     
+    # validates the document, validation errors can be retreived by calling #errors
     def valid?
       schema.validate(self)
     end
     
+    attr_accessor :errors
+    
+    # true if document exists in the store
     def exists?
       schema.exists?(self)
     end
     
+    # true if document does not exist in the store
     def new?
       !exists?
     end
     
+    # save the document to the store, does not validate first, that is up to you, returns document
     def save
       schema.save(self)
       self
     end
     
-    # private
+    # == private implementation
+    
+    metaclass.send :attr_accessor, :schema
     
     def load(force = false)
       unless @loaded || force
@@ -229,7 +241,15 @@ module FancyModels
   
   class Store
     
-    # stores stuff, like a filesystem, except fancier
+    # define a schema for storing documents
+    def define(schema_name, &definition)
+      s = Schema.new(self,schema_name)
+      s.define(&definition)
+      @schemas << s
+      metaclass.send(:define_method, schema_name){s}
+    end
+    
+    # == private implementation
     
     attr_reader :db
     
@@ -250,20 +270,19 @@ module FancyModels
       @db[:documents]
     end
     
-    def define(schema_name, &definition)
-      s = Schema.new(self,schema_name)
-      s.define(&definition)
-      @schemas << s
-      metaclass.send(:define_method, schema_name){s}
-    end
-    
   end
   
+  # creates a new store and connects it to the given db. You probably want
+  # to store the return value of this call in a constant so you can access
+  # it from anywhere in you program. E.g.
+  #     MyStore = FancyModels.create_store Sequel.sqlite
   def self.create_store(db)
     store = Store.new(db)
     store.create_documents_table
     store
   end
+
+  # == private implementation
   
   # no vowels
   ID_CHARS = ('0'..'9').to_a + (('a'..'z').to_a - ['a','e','i','o','u'])
