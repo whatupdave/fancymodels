@@ -67,9 +67,18 @@ module FancyModels
       document
     end
     alias_method :new, :build
-        
+    
     def define(&blk)
       Definition.new(self).instance_eval(&blk)
+      create_index_table
+    end
+    
+    def create_index_table
+      @store.db.create_table @name do
+        primary_key :uid, :text, :auto_increment => false
+        column :id, :text, :unqiue => true, :index => true
+      end
+      @index_table = @store.db[@name]
     end
     
     def add_field(name, &definition)
@@ -91,7 +100,7 @@ module FancyModels
     
     def dump(document)
       case @format
-      when "yaml"
+      when 'yaml'
         @fields.map do |f|
           val = document.get_attr(f.name)
           f.yaml(val) unless val.blank?
@@ -99,30 +108,56 @@ module FancyModels
       end
     end
     
+    def find(id)
+      @klass.new(id) if @index_table.first(:id => id)
+    end
+    
+    def uid(id)
+      "/#{@name}/#{id}.#{@format}"
+    end
+    
+    def exists?(document)
+      @store.documents_table.first(:uid => document.uid)
+    end
+    
+    def create(document)
+      @store.documents_table.insert(:uid => document.uid, :data => document.dump)
+      @index_table.insert({:uid => document.uid}.merge(indexed_fields(document)))
+    end
+    
+    def update(document)
+      @store.documents_table.first(:uid => document.uid).update(:data => document.dump)
+      @index_table.first(:uid => document.uid).update(indexed_fields(document))
+    end
+    
     def save(document)
-      if row = @store.documents_table.first(:uid => document.uid)
-        row.update(:data => document.dump)
+      if document.new?
+        create(document)
       else
-        @store.documents_table.insert(:uid => document.uid, :data => document.dump)
+        update(document)
       end
+    end
+    
+    def indexed_fields(document)
+      { :id => document.id }
     end
     
   end
   
   class Document
     
-    class << self
-      attr_accessor :schema
-    end
+    metaclass.send :attr_accessor, :schema
     
     attr_accessor :errors
     
-    def id
-      @id ||= FancyModels.rand_id
+    attr_reader :id
+    
+    def initialize(id=nil)
+      @id = id || FancyModels.rand_id
     end
     
     def uid
-      "/#{schema.name}/#{id}.#{schema.format}"
+      schema.uid(id)
     end
     
     def get_attr(name)
@@ -137,16 +172,16 @@ module FancyModels
       hsh.each { |name, val| self.set_attr(name,val) }
     end
     
-    def inspect
-      "#<#{self.class.schema.name} document>" # todo: dump yaml if yaml format
-    end
-    
-    def schema
-      self.class.schema
-    end
-    
     def valid?
       schema.validate(self)
+    end
+    
+    def exists?
+      schema.exists?(self)
+    end
+    
+    def new?
+      !exists?
     end
     
     def dump
@@ -156,6 +191,14 @@ module FancyModels
     def save
       schema.save(self)
       self
+    end
+    
+    def schema
+      self.class.schema
+    end
+    
+    def inspect
+      "#<#{schema.name} document>" # todo: dump yaml if yaml format
     end
     
   end
@@ -172,7 +215,7 @@ module FancyModels
     end
     
     def create_documents_table
-      @db.create_table! :documents do
+      @db.create_table :documents do
         primary_key :uid, :text, :auto_increment => false
         # should be byta (or something in postgres) and binary or blob in sqlite
         column :data, :text
@@ -186,8 +229,8 @@ module FancyModels
     def define(schema_name, &definition)
       s = Schema.new(self,schema_name)
       s.define(&definition)
-      metaclass.send(:define_method, schema_name){s}
       @schemas << s
+      metaclass.send(:define_method, schema_name){s}
     end
     
   end

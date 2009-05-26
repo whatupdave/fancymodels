@@ -20,6 +20,10 @@ describe "simple store with one model" do
     @s.db[:documents].count.should == 0
   end
   
+  example "schemas have index tables" do
+    @s.db[:restaurants].count.should == 0
+  end
+  
   example "document instances can be created with new" do
     r = @s.restaurants.new
     r.class.superclass.should == FancyModels::Document
@@ -58,6 +62,19 @@ describe "simple store with one model" do
     r = @s.restaurants.new :name => "Test"
     r.save
     @s.documents_table.first(:uid => r.uid)[:data].should == r.dump
+  end
+  
+  example "documents index their ids by default" do
+    r = @s.restaurants.new :name => "Test"
+    r.save
+    @s.db[:restaurants].first(:id => r.id)[:uid].should == r.uid
+  end
+  
+  example "documents can be retreived with find(id)" do
+    r = @s.restaurants.new
+    r.instance_eval {@id = 'tdfjtscvm3v1'}
+    r.save
+    @s.restaurants.find('tdfjtscvm3v1').id.should == 'tdfjtscvm3v1'
   end
 
 end
