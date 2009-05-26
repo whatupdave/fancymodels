@@ -76,5 +76,25 @@ describe "simple store with one model" do
     r.save
     @s.restaurants.find('tdfjtscvm3v1').id.should == 'tdfjtscvm3v1'
   end
+  
+  example "documents load their data lazily" do
+    r = @s.restaurants.new :name => "Ambalas"
+    r.instance_eval {@id = 'tdfjtscvm3v1'}
+    r.save
+    
+    r = @s.restaurants.find('tdfjtscvm3v1')
+    r.instance_eval{@name}.should be_nil
+    r.name.should == "Ambalas"
+  end
+  
+  example "lazy loading does not overwrite attribs that have been set before the load" do
+    r = @s.restaurants.new :name => "Ambalas"
+    r.instance_eval {@id = 'tdfjtscvm3v1'}
+    r.save
+    
+    r = @s.restaurants.find('tdfjtscvm3v1')
+    r.name = "new name"
+    r.name.should == "new name"
+  end
 
 end

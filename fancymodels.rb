@@ -84,7 +84,11 @@ module FancyModels
     def add_field(name, &definition)
       f = Field.new(self, name)
       f.instance_eval(&definition) if definition
-      @klass.send :attr_accessor, name
+      @klass.send :define_method, name do
+        instance_variable_get("@#{name}") || (load && instance_variable_get("@#{name}"))
+      end
+      @klass.send :attr_writer, name
+      
       @fields << f
     end
     
@@ -96,6 +100,17 @@ module FancyModels
       end
       document.errors = doc_errors
       doc_errors.empty?
+    end
+    
+    def load(document)
+      return if document.new?
+      data = @store.documents_table.first(:uid => document.uid)[:data]
+      loaded_fields = case @format
+        when 'yaml' : YAML.load(data)
+        end 
+      loaded_fields.each do |name,val|
+        document.set_attr(name,val) unless document.instance_variable_get("@#{name}")
+      end
     end
     
     def dump(document)
@@ -156,18 +171,6 @@ module FancyModels
       @id = id || FancyModels.rand_id
     end
     
-    def uid
-      schema.uid(id)
-    end
-    
-    def get_attr(name)
-      self.send(name)
-    end
-    
-    def set_attr(name,val)
-      self.send("#{name}=", val)
-    end
-    
     def set(hsh = {})
       hsh.each { |name, val| self.set_attr(name,val) }
     end
@@ -184,13 +187,34 @@ module FancyModels
       !exists?
     end
     
-    def dump
-      schema.dump(self)
-    end
-    
     def save
       schema.save(self)
       self
+    end
+    
+    # private
+    
+    def load(force = false)
+      unless @loaded || force
+        schema.load(self)
+        @loaded = true
+      end
+    end
+    
+    def uid
+      schema.uid(id)
+    end
+    
+    def get_attr(name)
+      self.send(name)
+    end
+    
+    def set_attr(name,val)
+      self.send("#{name}=", val)
+    end
+    
+    def dump
+      schema.dump(self)
     end
     
     def schema
