@@ -1,6 +1,7 @@
 require 'rubygems'
 require 'sequel'
 require 'active_support/core_ext/object/metaclass'
+require 'active_support/core_ext/blank'
 
 module FancyModels
   
@@ -144,8 +145,8 @@ module FancyModels
     end
     
     def update(document)
-      @store.documents_table.first(:uid => document.uid).update(:data => document.dump)
-      @index_table.first(:uid => document.uid).update(indexed_fields(document))
+      @store.documents_table.filter(:uid => document.uid).update(:data => document.dump)
+      @index_table.filter(:uid => document.uid).update(indexed_fields(document))
     end
     
     def save(document)

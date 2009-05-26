@@ -96,5 +96,16 @@ describe "simple store with one model" do
     r.name = "new name"
     r.name.should == "new name"
   end
+  
+  example "documents can be updated with new values" do
+    r = @s.restaurants.new :name => "Ambalas"
+    r.instance_eval {@id = 'tdfjtscvm3v1'}
+    r.save
+    r.name = "new name"
+    r.save
+    
+    r = @s.restaurants.find('tdfjtscvm3v1')
+    r.name.should == "new name"
+  end
 
 end
