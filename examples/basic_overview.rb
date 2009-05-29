@@ -111,3 +111,45 @@ describe "simple store with one model" do
   end
 
 end
+
+describe "schema have_one relationship" do
+  
+  before do
+    @s = FancyModels.create_store Sequel.sqlite
+    
+    @s.define(:people) do 
+      name
+      slug
+      phone
+    end
+    
+    @s.people.have_one(:address) do
+      street
+      city
+    end
+    
+  end
+  
+  # # havent decided on this yet
+  # example "association is nil by default" do
+  #   p = @s.people.new :name => "Myles"
+  #   # p.address = :street => "1 Seasame St.", :city => "Sydney"
+  # end
+  
+  example "the association attribs can be set with hash" do
+    p = @s.people.new :name => "Myles", :address => {:street => "1 Seasame St.", :city => "Sydney"}
+    p.address.street.should == "1 Seasame St."
+  end
+  
+  example "the association has the same id as its parent" do
+    p = @s.people.new :name => "Myles", :address => {:street => "1 Seasame St.", :city => "Sydney"}
+    p.address.id.should == p.id
+  end
+  
+  example "uids is nested within parent" do
+    p = @s.people.new :address => {:street => 'foo'}
+    p.address.uid.should == "/people/#{p.id}/address.yaml"
+  end
+  
+  
+end
