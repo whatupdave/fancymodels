@@ -15,10 +15,10 @@ module FancyModels
 
     # Define a sub-schema, where this schema has one (or none) instances of said sub-schema
     def have_one(name, &definition)
-      schema = define_subschema(name,&definition)
-      add_have_one_association(name, schema)
+      subschema = define_subschema(name,&definition)
+      add_have_one_association(subschema)
       # metaclass.send(:define_method, schema_name){schema}
-      schema
+      subschema
     end
 
     # == private implementation
@@ -67,13 +67,14 @@ module FancyModels
   
     end
 
-    attr_reader :name, :format
+    attr_reader :name, :format, :associations
+    attr_accessor :parent
 
     def initialize(store,name)
       @store = store
       @name = name
       @fields = []
-      @associations = []
+      @associations = ActiveSupport::OrderedHash.new # too tricky? array of pairs clearer?
       @format = 'yaml'
       @klass = Class.new Document
       @klass.schema = self
@@ -85,7 +86,8 @@ module FancyModels
     end
     
     def define_subschema(name, &definition)
-      schema = self.class.new(@store,"#{@name}_#{name}")
+      # schema = self.class.new(@store,"#{@name}_#{name}")
+      schema = self.class.new(@store,name)
       schema.define(&definition)
       schema
     end
@@ -108,13 +110,15 @@ module FancyModels
   
       @fields << f
     end
-    
-    def add_have_one_association(name,schema)
-      @associations << name
-      @klass.send :define_method, "#{name}=" do |attribs|
-        instance_variable_set("@#{name}", schema.new_document(self.id).set(attribs))
+      
+    # documents associated with have_one have the same id (but not uid) as their parent
+    def add_have_one_association(schema)
+      schema.parent = self
+      @associations[schema] = :have_one
+      @klass.send :define_method, "#{schema.name}=" do |attribs|
+        instance_variable_set("@#{schema.name}", schema.new_document(self.id).set(attribs))
       end
-      @klass.send :attr_reader, name
+      @klass.send :attr_reader, schema.name
     end
 
     def validate(document)
@@ -149,7 +153,23 @@ module FancyModels
     end
 
     def uid(id)
-      "/#{@name}/#{id}.#{@format}"
+      "#{path(id)}.#{@format}"
+    end
+    
+    def parent?
+      @parent
+    end
+    
+    def parent_association
+      @parent.associations[self]
+    end
+    
+    def path(id)
+      if parent? && parent_association == :have_one
+        "#{@parent.path(id)}/#{name}"
+      else
+        "/#{@name}/#{id}"
+      end
     end
 
     def exists?(document)

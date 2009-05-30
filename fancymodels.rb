@@ -2,6 +2,7 @@ require 'rubygems'
 require 'sequel'
 require 'active_support/core_ext/object/metaclass'
 require 'active_support/core_ext/blank'
+require 'active_support/ordered_hash'
 
 module FancyModels
   
@@ -128,7 +129,7 @@ module FancyModels
     store.create_documents_table
     store
   end
-
+  
   # == private implementation
   
   # no vowels
